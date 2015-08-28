@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<!-- $Id: web.xml,v 1.1 2009/09/16 20:10:47 vgavrilov Exp $ -->
+
+<web-app xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
+    version="2.4">
+
+	<welcome-file-list>
+		<welcome-file>search.jsp</welcome-file>
+	</welcome-file-list>
+
+</web-app>

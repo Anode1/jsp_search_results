@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ================================================================= -->
+<!-- This file is an ANT (http://jakarta.apache.org/ant/) build script.-->
+<!--                                                                   -->
+<!-- NOTE: all directories are relative to the project root directory  -->
+<!-- and this file should be in that directory too                     -->
+<!--                                                                   -->
+<!-- @version $Id: build.xml,v 1.1 2009/09/16 20:10:46 vgavrilov Exp $ -->
+<!-- ================================================================= -->
+
+<project basedir="." default="compile" name="aissearch" >
+  
+  <property name="version" value="$Id: build.xml,v 1.1 2009/09/16 20:10:46 vgavrilov Exp $"/>
+  <property name="release" value="0.1"/>
+  <property name="src" value="src"/>
+  <property name="www" value="www"/>
+  <property name="build" value="classes"/>
+  <property name="temp.deploy.dir" value="deploy"/> 
+    
+  <property name="jar" value="${ant.project.name}.jar"/>
+  <property name="jar.dir" value="${www}/WEB-INF/lib/${jar}"/>
+  <property name="deploy.server.context" value="${ant.project.name}"/>
+  <property name="server.war" value="${deploy.server.context}.war"/>
+
+  <property name="javadoc.dir" value="doc/javadoc"/>
+  <property name="javadoc.header" value="${ant.project.name}"/>
+  <property name="javadoc.windowtitle" value="${ant.project.name} Project ver ${version} API Documentation"/>
+  <property name="javadoc.packages" value="*.*"/>
+  <!-- <property environment="env"/> --> <!-- make access to OS env vars. Does not work in XP for some reason - at least with current ant version -->
+
+  <path id="classpath">
+    <fileset dir="${www}/WEB-INF/lib"> 
+       <include name="**/*.jar"/>
+       <exclude name="${jar.dir}"/>
+    </fileset> 
+  </path>  
+  
+  <target name="init">
+  	<tstamp/>
+	<!-- /opt/Tomcat is soft-link to tomcat5.5 or to another tomcat version -->
+  	<condition property="production.deploy.dir" value="/opt/Tomcat/webapps">
+  	    <os family="unix"/>
+  	</condition>
+  	<condition property="production.deploy.dir" value="C:/apache-tomcat-6.0.20/webapps">
+  	    <os family="windows"/>
+  	</condition>
+  </target>
+
+  <target name="compile" depends="clean">
+  	<mkdir dir="${build}"/>
+  	<javac 
+	    destdir="${build}"
+	    optimize="true"
+	    debug="true"
+	    source="1.5"
+		target="1.5"
+	    deprecation="false">
+		<src path="src"/>
+	    	<classpath refid="classpath"/>
+    	</javac>
+
+  	<jar jarfile="${jar.dir}">
+		<fileset dir="${build}">
+	    	<patternset>
+	    		<include name="**/*.class"/>  
+	    	</patternset>
+	   	</fileset> 
+	</jar>    
+  </target>
+
+  <target name="clean" depends="init">
+    <delete dir="${temp.deploy.dir}" includeEmptyDirs="true" failonerror="false"/>
+    <delete file="${jar.dir}" failonerror="false"/>
+    <delete file="system.log" failonerror="false"/>
+    <delete dir="${build}" includeEmptyDirs="true" failonerror="false"/>
+  </target>  
+  
+  <target name="clean-all" depends="clean">  
+    <delete dir="${javadoc.dir}" includeEmptyDirs="true" failonerror="false"/> 
+  </target>    
+  
+  <target name="clean-garbage" depends="init">
+  	<delete>
+  		<fileset dir=".">
+			<patternset>
+    				<include name="**/*.dependency"/>
+    				<include name="**/*.~jav"/>
+    				<include name="**/*.deployment.properties"/>
+    			</patternset>
+    		</fileset>	
+	</delete>
+  </target>
+
+  <target name="javadoc" depends="init" description="javadoc">
+	<delete dir="${javadoc.dir}"  failonerror="false"/>
+        <mkdir dir="${javadoc.dir}"/>
+        <javadoc 
+            destdir="${javadoc.dir}" 
+            packagenames="${javadoc.packages}"
+       	    header="${javadoc.header}"
+            windowtitle="${javadoc.windowtitle}"
+            doctitle="${javadoc.windowtitle}" 
+            author="true"
+            version="true">
+            <classpath refid="classpath"/>
+            <bottom><![CDATA[<i>Copyright &#169; SourcePortal Inc. 2009</i>]]></bottom>
+            <sourcepath>
+                <pathelement location="${src}"/>
+            </sourcepath>
+            <group title="${ant.project.name} classes" packages="org"/>
+        </javadoc>
+  </target>  
+
+
+  <target name="war" depends="compile"> 
+	<delete file="${temp.deploy.dir}/${server.war}"/> <!-- if exists -->
+	<mkdir dir="${temp.deploy.dir}"/>
+   	<war warfile="${temp.deploy.dir}/${server.war}" webxml="${www}/WEB-INF/web.xml"> 
+  		<fileset dir="${www}" excludes="WEB-INF/web.xml"/> <!-- suppress warning -->
+  	</war>
+  </target>    
+
+ 
+  <target name="zip-src" depends="init">
+   	<delete file="${ant.project.name}-${DSTAMP}-src.zip" failonerror="false"/> 
+	<zip zipfile="${ant.project.name}-${DSTAMP}-src.zip">
+ 		<zipfileset dir="." prefix="${ant.project.name}">
+        		<exclude name="*.zip"/>
+        		<exclude name="*.tar.gz"/>
+        		<exclude name="${javadoc.dir}/**"/>
+        		<exclude name="${build}/**"/>
+			<exclude name="${deploy}/**"/>
+    		</zipfileset>        
+	</zip> 
+  </target>
+
+
+  <target name="tgz-src" depends="init">
+	<delete file="${ant.project.name}-${DSTAMP}-src.tar.gz" failonerror="false"/> 
+  	<tar tarfile="${ant.project.name}-${DSTAMP}-src.tar">
+  		<tarfileset dir=".">
+  		    	<exclude name="*.zip"/>
+		    	<exclude name="*.tar.gz"/>
+        		<exclude name="${javadoc.dir}/**"/>
+		    	<exclude name="${build}/**"/>
+			<exclude name="${deploy}/**"/>
+   		</tarfileset> 
+  	</tar>
+    <gzip zipfile="${ant.project.name}-${DSTAMP}-src.tar.gz" src="${ant.project.name}-${DSTAMP}-src.tar" />
+    <delete file="${ant.project.name}-${DSTAMP}-src.tar"/>  	 
+  </target>
+
+
+  <target name="zip-bin" depends="compile">
+    <delete file="${ant.project.name}-${DSTAMP}-bin.zip" failonerror="false"/> 
+    <zip zipfile="${ant.project.name}-${DSTAMP}-bin.zip">
+	 	<zipfileset dir="." prefix="${ant.project.name}">
+			<include name="${www}/**"/>
+			<include name="${deploy}"/>
+			<include name="README.txt"/>
+		</zipfileset>        
+    </zip> 
+  </target>    
+
+
+  <target name="tgz-bin" depends="compile">
+    <delete file="${ant.project.name}-${DSTAMP}-bin.tar.gz" failonerror="false"/> 
+    <tar tarfile="${ant.project.name}-${DSTAMP}-bin.tar">
+    	<tarfileset dir="." prefix="${ant.project.name}">
+            <include name="${www}/**"/>
+    		<include name="${deploy}"/>
+    		<include name="README.txt"/>
+    	</tarfileset> 
+    </tar>
+    <gzip zipfile="${ant.project.name}-${DSTAMP}-bin.tar.gz" src="${ant.project.name}-${DSTAMP}-bin.tar" />
+    <delete file="${ant.project.name}-${DSTAMP}-bin.tar"/>  
+  </target>  
+  
+  
+  <target name="release" depends="zip-bin,zip-src,tgz-bin,tgz-src">
+  </target>
+	
+
+  <target name="deploy" depends="war"> 
+      <echo>
+  	The following location is used for the deployment:
+  	${production.deploy.dir}
+      </echo>
+    <!--  <delete dir="${production.deploy.dir}/${deploy.server.context}" includeEmptyDirs="true" failonerror="false"/> -->    	
+      <delete file="${production.deploy.dir}/${server.war}"/>
+      <copy file="${temp.deploy.dir}/${server.war}" todir="${production.deploy.dir}" overwrite="true"/>
+  </target>
+	
+
+  <target name="help">
+    <echo>
+**************************************************    
+Ant script for ${ant.project.name}
+version $$Id: build.xml,v 1.1 2009/09/16 20:10:46 vgavrilov Exp $$
+**************************************************
+------------  Arguments supported: ---------------
+
+help (default)  -       Printing of this help screen
+compile         -       Compile classes
+clean           -       Remove server class and newly generated jars
+clean-all       -       Remove all classfiles, javadoc, new jars
+clean-garbage   -       Remove temp files created by IDEs
+war             -       Make war (j2ee web app) locally (without deploying it)
+deploy          -       Deploy war to Tomcat instance or to a standalone server
+release         -       Make src and bin releases
+javadoc         -       Make javadoc for everything
+    </echo>
+  </target>
+
+
+</project>
